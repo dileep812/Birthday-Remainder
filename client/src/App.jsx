@@ -18,25 +18,15 @@ function App() {
 
   // Fetch current user
   useEffect(() => {
-    console.log('Fetching current user from Render backend...');
-    fetch('https://birthday-remainder-zodg.onrender.com/auth/current_user', {
-      credentials: 'include',
-      mode: 'cors'
+    fetch('/auth/current_user', {
+      credentials: 'include'
     })
-      .then(res => {
-        console.log('Response status:', res.status);
-        console.log('Response headers:', [...res.headers.entries()]);
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
-        console.log('Current user data received:', data);
-        console.log('Data type:', typeof data);
-        console.log('Is null?:', data === null);
+        console.log('User data:', data);
         if (data && data._id) {
-          console.log('User authenticated! Setting user...');
           setUser(data);
         } else {
-          console.log('No valid user data, showing landing page');
           setUser(null);
         }
         setLoading(false);
@@ -56,11 +46,10 @@ function App() {
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch('https://birthday-remainder-zodg.onrender.com/api/events', {
+      const res = await fetch('/api/events', {
         credentials: 'include'
       });
       const data = await res.json();
-      console.log('Events Data:', data);
       setEvents(data);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -79,8 +68,8 @@ function App() {
     e.preventDefault();
 
     const url = editingId
-      ? `https://birthday-remainder-zodg.onrender.com/api/events/${editingId}`
-      : 'https://birthday-remainder-zodg.onrender.com/api/events';
+      ? `/api/events/${editingId}`
+      : '/api/events';
     const method = editingId ? 'PUT' : 'POST';
 
     try {
@@ -119,7 +108,7 @@ function App() {
     if (!window.confirm('Are you sure you want to delete this event?')) return;
 
     try {
-      const res = await fetch(`https://birthday-remainder-zodg.onrender.com/api/events/${id}`, {
+      const res = await fetch(`/api/events/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       });

@@ -6,6 +6,8 @@ import passport from 'passport';
 import cors from 'cors';
 import cron from 'node-cron';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import './config/passport.js';
 import authRoutes from './routes/authRoutes.js';
@@ -255,10 +257,25 @@ cron.schedule('0 9 * * *', async () => {
     }
 });
 
-// Health check
-app.get('/', (req, res) => {
-    res.json({ message: 'Birthday Reminder API is running' });
-});
+// Serve static files from React build in production
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, 'client', 'dist')));
+
+    // Handle React routing - serve index.html for all non-API routes
+    app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api') && !req.path.startsWith('/auth')) {
+            res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+        }
+    });
+} else {
+    // Health check for development
+    app.get('/', (req, res) => {
+        res.json({ message: 'Birthday Reminder API is running' });
+    });
+}
 
 const PORT = process.env.PORT || 5000;
 

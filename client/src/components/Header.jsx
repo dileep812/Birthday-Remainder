@@ -13,10 +13,10 @@ function Header({ user }) {
                         <div className="user-menu">
                             <img src={user.image} alt={user.displayName} className="user-avatar" />
                             <span>{user.displayName}</span>
-                            <a href="https://birthday-remainder-zodg.onrender.com/auth/logout" className="btn-logout">Logout</a>
+                            <a href="/auth/logout" className="btn-logout">Logout</a>
                         </div>
                     ) : (
-                        <a href="https://birthday-remainder-zodg.onrender.com/auth/google" className="btn-login">Login with Google</a>
+                        <a href="/auth/google" className="btn-login">Login with Google</a>
                     )}
                 </nav>
             </div>

@@ -14,10 +14,10 @@ router.get('/google',
 router.get('/google/callback',
     passport.authenticate('google', { failureRedirect: '/' }),
     (req, res) => {
-        res.redirect(process.env.CLIENT_URL || 'https://birthday-remainder-nine.vercel.app');
+        res.redirect('/');
     }
 );
-     
+
 // @route   GET /auth/logout
 // @desc    Logout user
 router.get('/logout', (req, res) => {
@@ -25,7 +25,7 @@ router.get('/logout', (req, res) => {
         if (err) {
             return res.status(500).json({ error: 'Logout failed' });
         }
-        res.redirect(process.env.CLIENT_URL || 'https://birthday-remainder-nine.vercel.app');
+        res.redirect('/');
     });
 });
 
