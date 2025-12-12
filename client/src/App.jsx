@@ -18,7 +18,9 @@ function App() {
 
   // Fetch current user
   useEffect(() => {
-    fetch('/auth/current_user')
+    fetch('https://birthday-remainder-zodg.onrender.com/auth/current_user', {
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(data => {
         setUser(data);
@@ -36,7 +38,9 @@ function App() {
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch('/api/events');
+      const res = await fetch('https://birthday-remainder-zodg.onrender.com/api/events', {
+        credentials: 'include'
+      });
       const data = await res.json();
       setEvents(data);
     } catch (error) {
@@ -55,14 +59,17 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const url = editingId ? `/api/events/${editingId}` : '/api/events';
+    const url = editingId
+      ? `https://birthday-remainder-zodg.onrender.com/api/events/${editingId}`
+      : 'https://birthday-remainder-zodg.onrender.com/api/events';
     const method = editingId ? 'PUT' : 'POST';
 
     try {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
+        credentials: 'include'
       });
 
       if (res.ok) {
@@ -89,7 +96,10 @@ function App() {
     if (!window.confirm('Are you sure you want to delete this event?')) return;
 
     try {
-      const res = await fetch(`/api/events/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://birthday-remainder-zodg.onrender.com/api/events/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
       if (res.ok) {
         fetchEvents();
       }

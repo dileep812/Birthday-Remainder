@@ -17,7 +17,7 @@ router.get('/google/callback',
         res.redirect(process.env.CLIENT_URL || 'https://birthday-remainder-nine.vercel.app');
     }
 );
-
+     
 // @route   GET /auth/logout
 // @desc    Logout user
 router.get('/logout', (req, res) => {
