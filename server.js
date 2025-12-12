@@ -17,6 +17,9 @@ dotenv.config();
 
 const app = express();
 
+// Trust proxy (required for Render/Heroku behind proxy)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 app.use(cors({
@@ -35,8 +38,9 @@ app.use(session({
     }),
     cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        secure: true,       // Required for cross-domain
+        sameSite: 'none',   // Required for cross-domain
+        httpOnly: true      // Security best practice
     }
 }));
 
