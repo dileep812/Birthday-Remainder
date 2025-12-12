@@ -23,10 +23,14 @@ function App() {
     })
       .then(res => res.json())
       .then(data => {
+        console.log('Current user data:', data);
         setUser(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        console.error('Error fetching current user:', err);
+        setLoading(false);
+      });
   }, []);
 
   // Fetch events when user is logged in
@@ -42,6 +46,7 @@ function App() {
         credentials: 'include'
       });
       const data = await res.json();
+      console.log('Events Data:', data);
       setEvents(data);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -68,7 +73,10 @@ function App() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          date: formData.dateOfEvent  // Map to backend field
+        }),
         credentials: 'include'
       });
 
@@ -82,9 +90,10 @@ function App() {
   };
 
   const handleEdit = (event) => {
+    const dateValue = event.date || event.dateOfEvent;
     setFormData({
       name: event.name,
-      dateOfEvent: event.dateOfEvent.split('T')[0],
+      dateOfEvent: dateValue ? dateValue.split('T')[0] : '',
       eventType: event.eventType,
       notes: event.notes || '',
       isRecurring: event.isRecurring
@@ -255,7 +264,7 @@ function App() {
                     <div className="event-info">
                       <h4>{event.name}</h4>
                       <p className="event-date">
-                        {new Date(event.dateOfEvent).toLocaleDateString('en-US', {
+                        {new Date(event.date || event.dateOfEvent).toLocaleDateString('en-US', {
                           month: 'long',
                           day: 'numeric'
                         })}
