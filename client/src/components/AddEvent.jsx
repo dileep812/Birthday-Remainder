@@ -1,1 +1,0 @@
-export default function AddEvent() { return <form>Input</form> }
