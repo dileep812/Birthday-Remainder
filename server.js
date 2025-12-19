@@ -25,11 +25,13 @@ app.set('trust proxy', 1);
 // Middleware
 app.use(express.json());
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'https://birthday-remainder-nine.vercel.app',
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
     credentials: true
 }));
 
 // Session configuration
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(session({
     secret: process.env.COOKIE_KEY || 'dev-secret-key',
     resave: false,
@@ -40,9 +42,9 @@ app.use(session({
     }),
     cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-        secure: true,       // Required for cross-domain
-        sameSite: 'none',   // Required for cross-domain
-        httpOnly: true      // Security best practice
+        secure: isProduction,              // true in production, false locally
+        sameSite: isProduction ? 'none' : 'lax',  // 'none' for cross-domain, 'lax' locally
+        httpOnly: true
     }
 }));
 
