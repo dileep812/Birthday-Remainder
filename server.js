@@ -57,8 +57,10 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// Verify email configuration on startup
-verifyEmailConfig();
+// Verify email configuration on startup (non-blocking)
+verifyEmailConfig().catch(err => {
+    console.warn('⚠️  Email verification failed on startup, but will retry when sending emails');
+});
 
 // Auth Routes
 app.use('/auth', authRoutes);
