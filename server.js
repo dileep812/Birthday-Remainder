@@ -327,6 +327,42 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
+    
+    // Send production live notification
+    if (process.env.NODE_ENV === 'production') {
+        try {
+            const liveNotificationEmail = 'dileep.y23@iiits.in';
+            const subject = '🎉 Birthday Reminder - Production is LIVE!';
+            const message = `
+                <h2>🚀 Production Deployment Successful!</h2>
+                <p>Hi Dileep,</p>
+                <p>Your Birthday Reminder application has been successfully deployed to production and is now <strong>LIVE</strong>! 🎉</p>
+                <p><strong>Deployment Details:</strong></p>
+                <ul>
+                    <li>Environment: Production</li>
+                    <li>Server Port: ${PORT}</li>
+                    <li>Deployed At: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</li>
+                    <li>MongoDB: Connected ✅</li>
+                    <li>Email Service: Configured ✅</li>
+                </ul>
+                <p><strong>Active Cron Jobs (IST):</strong></p>
+                <ul>
+                    <li>Previous Day 10 AM - Tomorrow's event reminders</li>
+                    <li>Previous Day 9 PM - Last minute reminders</li>
+                    <li>Midnight (12 AM) - Day-of notifications</li>
+                    <li>Day 10 AM - Morning reminders + cleanup</li>
+                </ul>
+                <p>All systems are operational and ready to send birthday notifications! 🎂</p>
+                <hr>
+                <p style="color: #999; font-size: 12px;">Birthday Reminder App - Automated Production Notification</p>
+            `;
+            
+            await sendNotification(liveNotificationEmail, subject, message, true);
+            console.log(`✅ Production live notification sent to ${liveNotificationEmail}`);
+        } catch (error) {
+            console.error('⚠️  Failed to send production live notification:', error.message);
+        }
+    }
 });
