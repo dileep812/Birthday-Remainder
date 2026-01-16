@@ -1,13 +1,21 @@
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+// Debug environment variables
+const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').replace(/\s/g, '');
+
+console.log(`[EmailService] Configuring with user: ${smtpUser}, pass length: ${smtpPass.length}`);
 
 // Create reusable transporter using SMTP configuration from environment variables
 const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT, 10) || 587,
-    secure: process.env.EMAIL_PORT === '465', // true for 465, false for other ports
+    service: 'gmail', // Simplified configuration for Gmail
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: smtpUser,
+        pass: smtpPass
     }
 });
 
@@ -24,7 +32,7 @@ const transporter = nodemailer.createTransport({
 export async function sendNotification(email, subject, message, isHtml = false) {
     try {
         const mailOptions = {
-            from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+            from: process.env.SMTP_USER || process.env.EMAIL_FROM || process.env.EMAIL_USER,
             to: email,
             subject: subject,
             [isHtml ? 'html' : 'text']: message

@@ -13,7 +13,7 @@ import './config/passport.js';
 import authRoutes from './routes/authRoutes.js';
 import Event from './models/Event.js';
 import User from './models/User.js';
-import { sendNotification } from './services/emailService.js';
+import { sendNotification, verifyEmailConfig } from './services/emailService.js';
 
 dotenv.config();
 
@@ -57,6 +57,9 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
+// Verify email configuration on startup
+verifyEmailConfig();
+
 // Auth Routes
 app.use('/auth', authRoutes);
 
@@ -87,6 +90,18 @@ app.post('/api/events', requireAuth, async (req, res) => {
     try {
         const { name, dateOfEvent, eventType, notes, isRecurring } = req.body;
         const date = new Date(dateOfEvent);
+
+        // For non-recurring events, ensure the date is in the future
+        if (isRecurring === false) {
+            const today = new Date();
+            today.setUTCHours(0, 0, 0, 0);
+            const eventDate = new Date(date);
+            eventDate.setUTCHours(0, 0, 0, 0);
+
+            if (eventDate < today) {
+                return res.status(400).json({ error: 'Non-recurring events cannot have past dates' });
+            }
+        }
 
         const event = new Event({
             _user: req.user._id,
@@ -190,72 +205,101 @@ const generateEmailContent = (event, user) => {
 };
 
 // ============================================
-// CRON JOBS
+// NOTIFICATION LOGIC
 // ============================================
 
-// Pre-notification: 7 PM day before (for tomorrow's events)
-cron.schedule('0 19 * * *', async () => {
-    console.log('⏰ Running Pre-Notification Cron (7 PM)');
+const sendNotificationsForDay = async (targetMonth, targetDay, targetYear, messagePrefix = '') => {
     try {
-        const { month, day, year } = getTargetDate(1); // Tomorrow
-
-        const events = await Event.find({ eventMonth: month, eventDay: day });
-        const filtered = events.filter(e => e.isRecurring || new Date(e.dateOfEvent).getUTCFullYear() === year);
-
-        for (const event of filtered) {
+        const events = await Event.find({ eventMonth: targetMonth, eventDay: targetDay });
+        
+        for (const event of events) {
             const user = await User.findById(event._user);
-            if (user && user.email) {
-                const { subject, message } = generateEmailContent(event, user);
-                await sendNotification(user.email, subject, message);
-                console.log(`📧 Pre-notification sent to ${user.email} for ${event.name}`);
+            if (!user || !user.email) continue;
+
+            const eventYear = new Date(event.dateOfEvent).getUTCFullYear();
+            const isRecurring = event.isRecurring === true;
+            const isNonRecurring = event.isRecurring === false;
+
+            // For recurring events: always send notification
+            // For non-recurring events: only send if the date is today or has not passed yet
+            let shouldSend = false;
+
+            if (isRecurring) {
+                // Recurring: send every year on this month/day
+                shouldSend = true;
+            } else if (isNonRecurring) {
+                // Non-recurring: only send if today is the event date
+                shouldSend = (targetMonth === event.eventMonth && 
+                            targetDay === event.eventDay && 
+                            targetYear === eventYear);
+            }
+
+            if (shouldSend) {
+                try {
+                    const { subject, message } = generateEmailContent(event, user);
+                    await sendNotification(user.email, messagePrefix + subject, message, true);
+                    console.log(`📧 ${messagePrefix.trim()} notification sent to ${user.email} for ${event.name}`);
+
+                    // For non-recurring events, delete after sending notifications on the day itself
+                    if (isNonRecurring && (targetMonth === event.eventMonth && 
+                                          targetDay === event.eventDay && 
+                                          targetYear === eventYear)) {
+                        // Only delete on the actual day of the event (not during pre-notifications)
+                        // This will be handled in the midnight/morning cron jobs
+                    }
+                } catch (err) {
+                    console.error(`❌ Failed to send notification for ${event.name}:`, err.message);
+                }
             }
         }
     } catch (error) {
-        console.error('❌ Pre-Notification Cron Error:', error);
+        console.error('❌ Notification Error:', error);
     }
+};
+
+// ============================================
+// CRON JOBS FOR NOTIFICATIONS (Indian Standard Time - IST/UTC+5:30)
+// ============================================
+
+// 1. Previous day at 10 AM IST (4:30 AM UTC)
+cron.schedule('30 4 * * *', async () => {
+    console.log('⏰ Running Notification Cron - Previous Day 10 AM IST');
+    const { month, day, year } = getTargetDate(1); // Tomorrow
+    await sendNotificationsForDay(month, day, year, '📧 Reminder: ');
 });
 
-// Midnight notification: 12 AM on the day
-cron.schedule('0 0 * * *', async () => {
-    console.log('⏰ Running Midnight Notification Cron (12 AM)');
-    try {
-        const { month, day, year } = getTargetDate(0); // Today
-
-        const events = await Event.find({ eventMonth: month, eventDay: day });
-        const filtered = events.filter(e => e.isRecurring || new Date(e.dateOfEvent).getUTCFullYear() === year);
-
-        for (const event of filtered) {
-            const user = await User.findById(event._user);
-            if (user && user.email) {
-                const { subject, message } = generateEmailContent(event, user);
-                await sendNotification(user.email, `🎊 TODAY! ${subject}`, message);
-                console.log(`📧 Midnight notification sent to ${user.email} for ${event.name}`);
-            }
-        }
-    } catch (error) {
-        console.error('❌ Midnight Cron Error:', error);
-    }
+// 2. Previous day at 9 PM IST (3:30 PM UTC)
+cron.schedule('30 15 * * *', async () => {
+    console.log('⏰ Running Notification Cron - Previous Day 9 PM IST');
+    const { month, day, year } = getTargetDate(1); // Tomorrow
+    await sendNotificationsForDay(month, day, year, '🔔 Last Minute: ');
 });
 
-// Morning reminder: 9 AM on the day
-cron.schedule('0 9 * * *', async () => {
-    console.log('⏰ Running Morning Reminder Cron (9 AM)');
+// 3. At 12 AM (Midnight) IST on the day (6:30 PM UTC previous day)
+cron.schedule('30 18 * * *', async () => {
+    console.log('⏰ Running Notification Cron - Midnight (12 AM) IST');
+    const { month, day, year } = getTargetDate(1); // Tomorrow (since this fires at 6:30 PM UTC, which is midnight IST tomorrow)
+    await sendNotificationsForDay(month, day, year, '🎊 TODAY! ');
+});
+
+// 4. At 10 AM IST on the day (4:30 AM UTC)
+cron.schedule('30 4 * * *', async () => {
+    console.log('⏰ Running Notification Cron - Day 10 AM IST');
+    const { month, day, year } = getTargetDate(0); // Today
+    await sendNotificationsForDay(month, day, year, '⏰ Morning Reminder: ');
+
+    // Delete non-recurring events after morning notification on the event day
     try {
-        const { month, day, year } = getTargetDate(0); // Today
-
-        const events = await Event.find({ eventMonth: month, eventDay: day });
-        const filtered = events.filter(e => e.isRecurring || new Date(e.dateOfEvent).getUTCFullYear() === year);
-
-        for (const event of filtered) {
-            const user = await User.findById(event._user);
-            if (user && user.email) {
-                const { subject, message } = generateEmailContent(event, user);
-                await sendNotification(user.email, `⏰ Morning Reminder: ${subject}`, message);
-                console.log(`📧 Morning reminder sent to ${user.email} for ${event.name}`);
+        const allEvents = await Event.find({ eventMonth: month, eventDay: day });
+        for (const event of allEvents) {
+            const eventYear = new Date(event.dateOfEvent).getUTCFullYear();
+            if (event.isRecurring === false && eventYear === year) {
+                await Event.findByIdAndDelete(event._id);
+                console.log(`🗑️ Non-recurring event deleted: ${event.name}`);
             }
         }
     } catch (error) {
-        console.error('❌ Morning Cron Error:', error);
+        console.error('❌ Error deleting non-recurring events:', error);
     }
 });
 

@@ -7,20 +7,20 @@ function Landing() {
                 <div className="landing-icon">🎂</div>
                 <h1>Never Forget a Birthday Again</h1>
                 <p className="subtitle">
-                    Get automatic reminders the day before, at midnight, and in the morning.
-                    Keep track of all your important dates in one place.
+                    Keep birthdays and special dates organized in one simple place.
+                    Plan ahead with a clear timeline of the events that matter.
                 </p>
 
                 <div className="features">
                     <div className="feature">
-                        <span className="feature-icon">🔔</span>
-                        <h3>Smart Reminders</h3>
-                        <p>3 notifications per birthday - so you never miss one</p>
+                        <span className="feature-icon">🗓️</span>
+                        <h3>Organized Events</h3>
+                        <p>See upcoming birthdays and dates at a glance</p>
                     </div>
                     <div className="feature">
-                        <span className="feature-icon">📧</span>
-                        <h3>Email Alerts</h3>
-                        <p>Get notified directly to your inbox</p>
+                        <span className="feature-icon">📝</span>
+                        <h3>Personal Notes</h3>
+                        <p>Add gift ideas, memories, or plans for each event</p>
                     </div>
                     <div className="feature">
                         <span className="feature-icon">🔐</span>

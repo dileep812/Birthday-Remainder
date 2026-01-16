@@ -1,6 +1,25 @@
 function EventForm({ formData, onChange, onSubmit, onCancel, editingId }) {
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        // Validate non-recurring events have future dates
+        if (!formData.isRecurring) {
+            const selectedDate = new Date(formData.dateOfEvent);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate < today) {
+                alert('⚠️ Non-recurring events must have future dates. Please enter a date that is today or later.');
+                return;
+            }
+        }
+
+        onSubmit(e);
+    };
+
     return (
-        <form className="event-form" onSubmit={onSubmit}>
+        <form className="event-form" onSubmit={handleSubmit}>
             <h3>{editingId ? 'Edit Event' : 'Add New Event'}</h3>
 
             <div className="form-group">
@@ -41,6 +60,11 @@ function EventForm({ formData, onChange, onSubmit, onCancel, editingId }) {
                     onChange={onChange}
                     required
                 />
+                {!formData.isRecurring && (
+                    <small style={{ color: '#666', marginTop: '5px', display: 'block' }}>
+                        💡 Non-recurring events must be set for future dates only
+                    </small>
+                )}
             </div>
 
             <div className="form-group">
