@@ -5,14 +5,18 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Debug environment variables
-const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
-const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').replace(/\s/g, '');
+const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.SENDGRID_USER;
+const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.SENDGRID_API_KEY || '').replace(/\s/g, '');
+const smtpHost = process.env.SMTP_HOST || 'smtp.sendgrid.net';
+const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 587;
 
-console.log(`[EmailService] Configuring with user: ${smtpUser}, pass length: ${smtpPass.length}`);
+console.log(`[EmailService] Configuring with host: ${smtpHost}, user: ${smtpUser}, pass length: ${smtpPass.length}`);
 
 // Create reusable transporter using SMTP configuration from environment variables
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Simplified configuration for Gmail
+    host: smtpHost,
+    port: smtpPort,
+    secure: false, // Use TLS
     auth: {
         user: smtpUser,
         pass: smtpPass
