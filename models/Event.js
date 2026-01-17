@@ -15,14 +15,6 @@ const EventSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  eventMonth: {
-    type: Number,
-    required: true
-  },
-  eventDay: {
-    type: Number,
-    required: true
-  },
   eventType: {
     type: String,
     enum: ['Birthday', 'Anniversary', 'Festival', 'Other'],
@@ -43,3 +35,4 @@ const EventSchema = new mongoose.Schema({
 });
 
 export default mongoose.model('Event', EventSchema);
+

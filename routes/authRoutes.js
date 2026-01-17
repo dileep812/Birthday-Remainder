@@ -7,13 +7,15 @@ const router = express.Router();
 // @desc    Authenticate with Google
 router.get('/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })
+    
 );
 
 // @route   GET /auth/google/callback
 // @desc    Google auth callback
 router.get('/google/callback',
     passport.authenticate('google', { failureRedirect: process.env.CLIENT_URL || 'http://localhost:5173' }),
-    (req, res) => {
+   (req, res) => {
+
         res.redirect(process.env.CLIENT_URL || 'http://localhost:5173');
     }
 );
