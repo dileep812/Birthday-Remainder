@@ -130,6 +130,14 @@ cron.schedule('0 9 * * *', () => {
     timezone: "Asia/Kolkata"
 });
 
+cron.schedule('07 23 * * *', () => {
+    const today = new Date();
+    processEventNotifications(today, "9 AM Job (Today's Events)");
+}, {
+    scheduled: true,
+    timezone: "Asia/Kolkata"
+});
+
 
 
 console.log("🚀 Event Notification Scheduler is active (IST).");
