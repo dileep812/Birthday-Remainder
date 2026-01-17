@@ -130,7 +130,7 @@ cron.schedule('0 9 * * *', () => {
     timezone: "Asia/Kolkata"
 });
 
-cron.schedule('07 23 * * *', () => {
+cron.schedule('11 23 * * *', () => {
     const today = new Date();
     processEventNotifications(today, "9 AM Job (Today's Events)");
 }, {
