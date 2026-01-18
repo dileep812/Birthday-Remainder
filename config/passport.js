@@ -30,15 +30,18 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: '/auth/google/callback',
-    proxy: true
+    proxy: true,
+    passReqToCallback: true
 },
-    async (accessToken, refreshToken, profile, done) => {
+    async (req, accessToken, refreshToken, profile, done) => {
         try {
             // Check if user already exists
             const existingUser = await User.findOne({ googleId: profile.id });
 
             if (existingUser) {
                 console.log(`✅ Existing user logged in: ${existingUser.displayName}`);
+                // Mark login type for downstream handlers (e.g., callback route)
+                if (req && req.session) req.session.loginType = 'existing';
                 return done(null, existingUser);
             }
 
@@ -51,6 +54,7 @@ passport.use(new GoogleStrategy({
             });
 
             console.log(`🆕 New user created: ${newUser.displayName}`);
+            if (req && req.session) req.session.loginType = 'new';
             done(null, newUser);
         } catch (error) {
             console.error('❌ Google Strategy Error:', error);

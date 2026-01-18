@@ -59,7 +59,7 @@ await sendMail(event._user.email, subject, htmlBody);
 
             // 4. DELETE if non-recursive
             if (!event.isRecurring) {
-                await Event.findByIdAndDelete(event._id);
+                await Events.findByIdAndDelete(event._id);
                 console.log(`🗑️ Deleted one-time event: ${event.name}`);
             }
         }
@@ -130,13 +130,6 @@ cron.schedule('0 9 * * *', () => {
     timezone: "Asia/Kolkata"
 });
 
-cron.schedule('6 9 * * *', () => {
-    const today = new Date();
-    processEventNotifications(today, "9 AM Job (Today's Events)");
-}, {
-    scheduled: true,
-    timezone: "Asia/Kolkata"
-});
 
 
 
