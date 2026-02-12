@@ -6,6 +6,42 @@ import Events from "../models/Event.js"
 
 // --- 2. Notification Logic ---
 
+const isCronEnabled = process.env.ENABLE_CRON === 'true';
+const runningJobs = {
+    nightly: false,
+    midnight: false,
+    morning: false
+};
+
+function safeSchedule(name, expression, job, timezone) {
+    if (!isCronEnabled) {
+        console.log(`[Cron] Skipped scheduling ${name}: ENABLE_CRON is not true.`);
+        return;
+    }
+
+    cron.schedule(expression, async () => {
+        if (runningJobs[name]) {
+            console.log(`[Cron] ${name} is already running. Skipping this tick.`);
+            return;
+        }
+
+        runningJobs[name] = true;
+        const startedAt = Date.now();
+        try {
+            await job();
+        } catch (error) {
+            console.error(`[Cron] ${name} failed:`, error);
+        } finally {
+            runningJobs[name] = false;
+            const durationMs = Date.now() - startedAt;
+            console.log(`[Cron] ${name} finished in ${durationMs}ms.`);
+        }
+    }, {
+        scheduled: true,
+        timezone
+    });
+}
+
 /**
  * Filters events based on a specific date (month/day)
  * and sends emails to the associated users.
@@ -17,7 +53,7 @@ async function processEventNotifications(targetDate, label) {
 
     console.log(`[${label}] 🔍 Scanning for events on M:${month} D:${day}...`);
 
-try {
+    try {
         // 1. Fetch events matching the day and month
         const events = await Events.find({
             $expr: {
@@ -53,9 +89,14 @@ try {
                     event.notes
                 );
 
-// Send the HTML email
-await sendMail(event._user.email, subject, htmlBody);
-            console.log(`✅ Sent to ${event._user.email}`);
+            // Send the HTML email (per-event try/catch to avoid aborting the batch)
+            try {
+                await sendMail(event._user.email, subject, htmlBody);
+                console.log(`✅ Sent to ${event._user.email}`);
+            } catch (mailError) {
+                console.error(`❌ Failed to send to ${event._user.email}:`, mailError);
+                continue;
+            }
 
             // 4. DELETE if non-recursive
             if (!event.isRecurring) {
@@ -103,32 +144,23 @@ function getEventTemplate(userName, eventName, eventType, notes) {
 // --- 3. Cron Schedules (IST) ---
 
 // A. At 9:00 PM (21:00) IST -> Filter for TOMORROW's events
-cron.schedule('0 21 * * *', () => {
+safeSchedule('nightly', '0 21 * * *', async () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    processEventNotifications(tomorrow, "9 PM Job (Tomorrow's Events)");
-}, {
-    scheduled: true,
-    timezone: "Asia/Kolkata"
-});
+    await processEventNotifications(tomorrow, "9 PM Job (Tomorrow's Events)");
+}, "Asia/Kolkata");
 
 // B. At 12:00 AM (00:00) IST -> Filter for TODAY's events
-cron.schedule('0 0 * * *', () => {
+safeSchedule('midnight', '0 0 * * *', async () => {
     const today = new Date();
-    processEventNotifications(today, "12 AM Job (Today's Events)");
-}, {
-    scheduled: true,
-    timezone: "Asia/Kolkata"
-});
+    await processEventNotifications(today, "12 AM Job (Today's Events)");
+}, "Asia/Kolkata");
 
 // C. At 9:00 AM (09:00) IST -> Filter for TODAY's events
-cron.schedule('0 9 * * *', () => {
+safeSchedule('morning', '0 9 * * *', async () => {
     const today = new Date();
-    processEventNotifications(today, "9 AM Job (Today's Events)");
-}, {
-    scheduled: true,
-    timezone: "Asia/Kolkata"
-});
+    await processEventNotifications(today, "9 AM Job (Today's Events)");
+}, "Asia/Kolkata");
 
 
 
